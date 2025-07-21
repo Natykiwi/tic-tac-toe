@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic Tac Toe - Single Player</title>
+    <style>
+        #board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            gap: 5px;
+        }
+
+        .cell {
+            width: 100px;
+            height: 100px;
+            background-color: rgb(0, 120, 240);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2em;
+            cursor: pointer;
+            border: 1px solid #ccc;
+        }
+
+        .cell:hover {
+            background-color: #e0e0e0;
+        }
+
+        #status {
+            margin: 20px 0;
+            font-size: 1.5em;
+            text-align: center;
+            color: rgb(104, 7, 232);
+            min-height: 30px;
+        }
+
+        .blink {
+            animation: blink 0.8s linear infinite;
+        }
+
+        @keyframes blink {
+            0% { color: rgb(220, 0, 0); }
+            50% { color: transparent; }
+            100% { color: rgb(220, 0, 0); }
+        }
+    </style>
+</head>
+<body>
+    <h1>Tic Tac Toe - Single Player</h1> 
+    <div id="difficulty">
+        <button id="Noob">Noob</button>
+        <button id="Easy">Easy</button>
+        <button id="Normal">Normal</button>
+        <button id="Hard">Hard</button>
+        <button id="Impossible">Impossible</button>
+    </div>
+
+    <div id="scoreboard">
+        <h2>Score:</h2>
+        <p> Player X: <span id="scoreX">0</span></p>
+        <p> Player O: <span id="scoreO">0</span></p>
+    </div>
+
+    <div id="board"> 
+        <div class="cell" data-index="0"></div>
+        <div class="cell" data-index="1"></div>
+        <div class="cell" data-index="2"></div>
+        <div class="cell" data-index="3"></div>
+        <div class="cell" data-index="4"></div>
+        <div class="cell" data-index="5"></div>
+        <div class="cell" data-index="6"></div>
+        <div class="cell" data-index="7"></div>
+        <div class="cell" data-index="8"></div>
+    </div>
+
+    <div id="status"></div> 
+    <button id="restart">Restart Game</button> 
+
+    <script>
+let currentPlayer = 'X'; 
+let gameBoard = ['', '', '', '', '', '', '', '', ''];
+let gameActive = true;
+let scoreX = 0;
+let scoreO = 0;
+let difficulty = 'easy';
+
+const cells = document.querySelectorAll('.cell');
+const statusDisplay = document.getElementById('status');
+const restartButton = document.getElementById('restart');
+
+// Corrected IDs to match the button IDs in html
+document.getElementById('Noob').addEventListener('click', () => setDifficulty('noob'));
+document.getElementById('Easy').addEventListener('click', () => setDifficulty('easy'));
+document.getElementById('Normal').addEventListener('click', () => setDifficulty('normal'));
+document.getElementById('Hard').addEventListener('click', () => setDifficulty('hard'));
+document.getElementById('Impossible').addEventListener('click', () => setDifficulty('impossible'));
+
+cells.forEach(cell => {
+    cell.addEventListener('click', handleCellClick);
+});
+
+restartButton.addEventListener('click', resetGame);
+
+function setDifficulty(level) {
+    difficulty = level;
+    resetGame();
+    statusDisplay.textContent = `difficulty set to ${level.charAt(0).toUpperCase() + level.slice(1)}`;
+}
+
+function handleCellClick(e) {
+    const cell = e.target;
+    const index = cell.getAttribute('data-index');
+
+    if (gameBoard[index] === '' && gameActive) {
+        gameBoard[index] = currentPlayer;
+        cell.textContent = currentPlayer;
+
+        if (checkWin()) {
+            statusDisplay.textContent = `Player ${currentPlayer} wins!`;
+            if (currentPlayer === 'X') {
+                scoreX++;
+                document.getElementById('scoreX').textContent = scoreX;
+            } else {
+                scoreO++;
+                document.getElementById('scoreO').textContent = scoreO;
+            }
+            gameActive = false;
+            return;
+        }
+
+        if (checkDraw()) {
+            statusDisplay.textContent = "It's a tie!";
+            gameActive = false;
+            return;
+        }
+
+        currentPlayer = 'O';
+        setTimeout(computerMove, 500); 
+    }
+}
+
+function computerMove() {
+    let moveIndex;
+    switch (difficulty) {
+        case 'noob':
+            moveIndex = getRandomMove();
+            break;
+        case 'easy':
+            moveIndex = getRandomMove();
+            break;
+        case 'normal':
+            moveIndex = getNormalMove();
+            break;
+        case 'hard':
+            moveIndex = getHardMove();
+            break;
+        case 'impossible':
+            moveIndex = getBestMove();
+            break;
+    }
+
+    if (moveIndex !== undefined) {
+        gameBoard[moveIndex] = currentPlayer;
+        cells[moveIndex].textContent = currentPlayer;
+
+        if (checkWin()) {
+            statusDisplay.textContent = `Player ${currentPlayer} wins!`;
+            scoreO++;
+            document.getElementById('scoreO').textContent = scoreO;
+            gameActive = false;
+            return;
+        }
+
+        if (checkDraw()) {
+            statusDisplay.textContent = "It's a tie!";
+            gameActive = false;
+            return;
+        }
+
+        currentPlayer = 'X';
+    }
+}
+
+function getRandomMove() {
+    const availableCells = gameBoard.map((cell, index) => cell === '' ? index : null).filter(index => index !== null);
+    return availableCells[Math.floor(Math.random() * availableCells.length)];
+}
+
+function getNormalMove() {
+    // First check if AI can win (80% chance)
+    if (Math.random() < 0.8) {
+        for (let i = 0; i < gameBoard.length; i++) {
+            if (gameBoard[i] === '') {
+                gameBoard[i] = 'O';
+                if (checkWin()) {
+                    gameBoard[i] = '';
+                    return i; 
+                }
+                gameBoard[i] = '';
+            }
+        }
+    }
+
+    // Check if need to block (now 80% chance)
+    if (Math.random() < 0.8) {
+        for (let i = 0; i < gameBoard.length; i++) {
+            if (gameBoard[i] === '') {
+                gameBoard[i] = 'X';  // Test if player would win here
+                if (checkWin()) {
+                    gameBoard[i] = '';  // Reset the test
+                    return i;  // Block the player
+                }
+                gameBoard[i] = '';
+            }
+        }
+    }
+
+    // If no winning move or we chose not to take it,
+    // and either no block needed or we chose not to block
+    return getRandomMove();
+}
+
+function getHardMove() {
+    if (gameBoard[4] === 'O') {
+        if ((gameBoard[0] === 'X' && gameBoard[8] === 'X') || // corners 0,8
+        (gameBoard[2] === 'X' && gameBoard[6] === 'X')) { // corners 2, 6
+            
+        if (Math.random() < 0.75) {
+
+            const sideMoves = [1, 3, 5, 7].filter(pos => gameBoard[pos] === '');
+            if (sideMoves.length > 0) {
+                return sideMoves[Math.floor(Math.random() * sideMoves.length)];
+            }
+        }
+    }
+    }
+    for (let i = 0; i < gameBoard.length; i++) { 
+        if (gameBoard[i] === '') {
+            gameBoard[i] = 'O';
+            console.log(`AI trying to win at index ${i}`);
+            if (checkWin()) {
+                console.log(`AI wins at index ${i}`);
+                gameBoard[i] = ''; 
+                return i; 
+            }
+            gameBoard[i] = '';
+        }
+    }
+
+    // Check if Player X is about to win
+    for (let i = 0; i < gameBoard.length; i++) { 
+        if (gameBoard[i] === '') {
+            gameBoard[i] = 'X';
+            console.log(`Checking if Player X can win at index ${i}`);
+            if (checkWin()) {
+                console.log(`Blocking Player X at index ${i}`);
+                gameBoard[i] = ''; // Reset the cell
+                return i; // Block the player's winning move
+            }
+            gameBoard[i] = '';
+        }
+    }
+
+    const winConditions = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
+        [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
+        [0, 4, 8], [2, 4, 6] // diagonals
+    ];
+
+    for (const condition of winConditions) {
+        const [a, b, c] = condition;
+        const playerCount = [gameBoard[a], gameBoard[b], gameBoard[c]].filter(cell => cell === 'X').length;
+        const emptyCount = [gameBoard[a], gameBoard[b], gameBoard[c]].filter (cell => cell === '').length;
+
+        if (playerCount === 2 && emptyCount === 1) {
+            if (gameBoard [a] === '') return a;
+            if (gameBoard [b] === '') return b;
+            if (gameBoard [c] === '') return c;
+        }
+
+    }
+
+    // Prioritize center
+    if (gameBoard[4] === '') {
+        console.log(`Taking center at index 4`);
+        return 4; // Take the center if available
+    }
+
+    // Prioritize corners
+    const corners = [0, 2, 6, 8];
+    for (let corner of corners) {
+        if (gameBoard[corner] === '') {
+            console.log(`Taking corner at index ${corner}`);
+            return corner; // Take a corner if available
+        }
+    }
+
+    // If no winning or blocking move, make a random move
+    console.log(`No winning or blocking move found, making a random move`);
+    return getRandomMove();
+}
+
+function checkWinForPlayer(player) {
+    const winConditions = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
+        [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
+        [0, 4, 8], [2, 4, 6] // diagonals
+    ];
+
+    for (const condition of winConditions) {
+        if (condition.every(index => gameBoard[index] === player)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function getBestMove() {
+    // Corner-trap defense
+    if (gameBoard[4] === 'O') {
+        if ((gameBoard[0] === 'X' && gameBoard[8] === 'X') || 
+            (gameBoard[2] === 'X' && gameBoard[6] === 'X')) {
+            
+            const sideMoves = [1, 3, 5, 7].filter(pos => gameBoard[pos] === '');
+            if (sideMoves.length > 0) {
+                return sideMoves[Math.floor(Math.random() * sideMoves.length)];
+            }
+        }
+    }
+    
+    // First priority: Check if AI can win
+    for (let i = 0; i < gameBoard.length; i++) { 
+        if (gameBoard[i] === '') {
+            gameBoard[i] = 'O';
+            const canWin = checkWinForPlayer('O');
+            gameBoard[i] = ''; 
+            if (canWin) return i;
+        }
+    }
+
+    // Second priority: Block player win
+    for (let i = 0; i < gameBoard.length; i++) { 
+        if (gameBoard[i] === '') {
+            gameBoard[i] = 'X';
+            const playerCanWin = checkWinForPlayer('X');
+            gameBoard[i] = '';
+            if (playerCanWin) return i;
+        }
+    }
+    
+    // Third priority: Create forks or block player forks
+    // Look for potential fork situations (2 ways to win)
+    for (let i = 0; i < gameBoard.length; i++) {
+        if (gameBoard[i] === '') {
+            // Check if this move creates a fork for AI
+            gameBoard[i] = 'O';
+            let winningMoves = 0;
+            for (let j = 0; j < gameBoard.length; j++) {
+                if (gameBoard[j] === '') {
+                    gameBoard[j] = 'O';
+                    if (checkWinForPlayer('O')) winningMoves++;
+                    gameBoard[j] = '';
+                }
+            }
+            gameBoard[i] = '';
+            
+            if (winningMoves >= 2) return i; // Create a fork
+        }
+    }
+    
+    // Block player forks
+    for (let i = 0; i < gameBoard.length; i++) {
+        if (gameBoard[i] === '') {
+            // Check if player could create a fork here
+            gameBoard[i] = 'X';
+            let winningMoves = 0;
+            for (let j = 0; j < gameBoard.length; j++) {
+                if (gameBoard[j] === '') {
+                    gameBoard[j] = 'X';
+                    if (checkWinForPlayer('X')) winningMoves++;
+                    gameBoard[j] = '';
+                }
+            }
+            gameBoard[i] = '';
+            
+            if (winningMoves >= 2) return i; // Block player's fork
+        }
+    }
+
+    // Fourth priority: Take center
+    if (gameBoard[4] === '') {
+        return 4;
+    }
+    
+    // Fifth priority: Take opposite corner if player has a corner
+    const oppositeCorners = [[0, 8], [2, 6]];
+    for (const [a, b] of oppositeCorners) {
+        if (gameBoard[a] === 'X' && gameBoard[b] === '') return b;
+        if (gameBoard[b] === 'X' && gameBoard[a] === '') return a;
+    }
+    
+    // Sixth priority: Take any corner
+    const corners = [0, 2, 6, 8];
+    for (let corner of corners) {
+        if (gameBoard[corner] === '') {
+            return corner;
+        }
+    }
+    
+    // Last priority: Take any side
+    const sides = [1, 3, 5, 7];
+    for (let side of sides) {
+        if (gameBoard[side] === '') {
+            return side;
+        }
+    }
+    
+    // If somehow nothing was chosen (shouldn't happen)
+    return getRandomMove();
+}
+
+function checkWin() {
+    const winConditions = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
+        [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
+        [0, 4, 8], [2, 4, 6] // diagonals
+    ];
+
+    for (const condition of winConditions) {
+        if (condition.every(index => gameBoard[index] === currentPlayer)) { // Fixed method name
+            condition.forEach(index => {
+                cells[index].classList.add('blink'); // Fixed classList method
+            });
+            return true;
+        }
+    }
+    return false;
+}
+
+function checkDraw() {
+    return gameBoard.every(cell => cell !== '');
+}
+
+function resetGame() {
+    currentPlayer = 'X'; 
+    gameBoard = ['', '', '', '', '', '', '', '', ''];
+    gameActive = true;
+    statusDisplay.textContent = ''; 
+    cells.forEach(cell => {
+        cell.textContent = ''; 
+        cell.classList.remove('blink');
+    });
+}    </script>
+</body>
+</html>
+
+
+
+
